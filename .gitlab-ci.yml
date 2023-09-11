@@ -1,0 +1,62 @@
+image: openjdk:11-jdk
+
+stages:
+  - build
+  - publish
+  - deploy
+
+before_script:
+  - echo $GRADLE_HOME
+  - echo `pwd`
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+  - rm -f  .gradle/caches/modules-2/modules-2.lock
+  - rm -fr .gradle/caches/*/plugin-resolution/
+  - chmod +x gradlew
+cache:
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+build:gradle:
+  stage: build
+  only:
+    - tags
+  tags: 
+    - comsc-ci
+    
+  script:
+    - ./gradlew buildAndReport
+  artifacts:
+    name: "$CI_JOB_NAME"
+    paths:
+      - ./build/reports/tests/
+      - ./build/reports/checkstyle/
+      - ./build/jacocoHtml
+      - ./build/libs/*.jar
+    expire_in: 1 week
+
+
+pages:
+
+  stage: publish
+  tags: 
+    - comsc-ci
+
+
+
+  script:
+    - pwd
+    - mkdir public/jars
+    - mv ./build/reports/tests/ public
+    - mv ./build/reports/checkstyle/ public
+    - mv ./build/jacocoHtml/ public
+    - mv ./build/libs/*.jar public/jars
+    - pwd
+    - ls -lR public
+
+  artifacts:
+    paths:
+      - public
+
+  only:
+    - tags
